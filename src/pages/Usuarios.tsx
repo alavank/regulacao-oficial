@@ -85,18 +85,36 @@ export function Usuarios() {
     setFormLoading(true)
     setMsg('')
 
-    const { error } = await supabase.auth.signUp({
-      email: formEmail,
-      password: formSenha,
-      options: { data: { nome: formNome, role: formRole } },
-    })
+    try {
+      // Usar API do backend para não trocar a sessão do admin
+      const session = await supabase.auth.getSession()
+      const token = session.data.session?.access_token
 
-    if (error) {
-      setMsg(`Erro: ${error.message}`)
-    } else {
-      await registrar('usuario.criar', 'usuarios', { nome: formNome, email: formEmail, role: formRole })
-      setMsg('Usuário criado com sucesso! Ele deverá trocar a senha no primeiro login.')
-      setTimeout(() => { fetchUsuarios(); fecharModal() }, 1500)
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          email: formEmail,
+          password: formSenha,
+          nome: formNome,
+          role: formRole,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setMsg(`Erro: ${data.error}`)
+      } else {
+        await registrar('usuario.criar', 'usuarios', { nome: formNome, email: formEmail, role: formRole })
+        setMsg('Usuário criado com sucesso! Ele deverá trocar a senha no primeiro login.')
+        setTimeout(() => { fetchUsuarios(); fecharModal() }, 1500)
+      }
+    } catch (err: any) {
+      setMsg(`Erro: ${err.message}`)
     }
     setFormLoading(false)
   }
