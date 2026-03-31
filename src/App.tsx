@@ -11,6 +11,7 @@ import { Transparencia } from './pages/Transparencia'
 import { Auditoria } from './pages/Auditoria'
 import { Usuarios } from './pages/Usuarios'
 import { Configuracoes } from './pages/Configuracoes'
+import { Parametros } from './pages/Parametros'
 
 function DashboardRouter() {
   const { perfil } = useAuth()
@@ -61,6 +62,14 @@ export function App() {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <Usuarios />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/parametros"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Parametros />
             </ProtectedRoute>
           }
         />

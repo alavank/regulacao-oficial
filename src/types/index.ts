@@ -20,22 +20,27 @@ export interface Demanda {
   telefone: string | null
   tipo_demanda: string
   descricao: string | null
+  descricao_demanda: string | null
   status: 'aberto' | 'em_analise' | 'em_andamento' | 'concluido' | 'cancelado' | 'devolvido'
   data_abertura: string
   data_conclusao: string | null
   tmat: string | null
-  classificacao_cor: 'verde' | 'amarelo' | 'vermelho'
+  tempo_resposta_dias: number | null
+  classificacao_cor: string | null
   info_setor: string | null
   observacoes: string | null
+  resposta_regulacao: string | null
+  regulador_id: string | null
   created_at: string
   updated_at: string
-  // join
+  // joins
   perfil?: Perfil
+  regulador?: Perfil
 }
 
 export interface Parametro {
   id: string
-  categoria: 'tipo' | 'status' | 'cor'
+  categoria: 'tipo' | 'descricao' | 'cor' | 'status' | 'setor'
   valor: string
   config: Record<string, string>
   ativo: boolean
@@ -66,12 +71,15 @@ export interface TransparenciaPublica {
   iniciais_paciente: string
   cpf_anonimizado: string
   tipo_demanda: string
+  descricao_demanda: string | null
   status: string
-  classificacao_cor: string
+  classificacao_cor: string | null
   data_abertura: string
   data_conclusao: string | null
   tmat: string | null
+  tempo_resposta_dias: number | null
   nome_vereador: string
+  posicao_fila: number
 }
 
 export interface DashboardStats {
@@ -83,12 +91,11 @@ export interface DashboardStats {
   tmat_medio: string | null
 }
 
-// Supabase Database type helper
 export interface Database {
   public: {
     Tables: {
       perfis: { Row: Perfil; Insert: Omit<Perfil, 'created_at' | 'updated_at'>; Update: Partial<Perfil> }
-      demandas: { Row: Demanda; Insert: Omit<Demanda, 'id' | 'codigo_unico' | 'tmat' | 'created_at' | 'updated_at'>; Update: Partial<Demanda> }
+      demandas: { Row: Demanda; Insert: Partial<Demanda>; Update: Partial<Demanda> }
       parametros: { Row: Parametro; Insert: Omit<Parametro, 'id' | 'created_at'>; Update: Partial<Parametro> }
       auditoria_logs: { Row: AuditoriaLog; Insert: Omit<AuditoriaLog, 'id' | 'created_at'>; Update: never }
     }

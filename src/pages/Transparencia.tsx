@@ -1,22 +1,24 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { StatusBadge, CorBadge } from '../components/StatusBadge'
+import { StatusBadge } from '../components/StatusBadge'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { TransparenciaPublica } from '../types'
-import { HiOutlineGlobeAlt } from 'react-icons/hi2'
+import { HiOutlineGlobeAlt, HiOutlineMagnifyingGlass } from 'react-icons/hi2'
 
 export function Transparencia() {
   const [dados, setDados] = useState<TransparenciaPublica[]>([])
   const [loading, setLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('')
+  const [busca, setBusca] = useState('')
 
   useEffect(() => {
     async function fetch() {
+      setLoading(true)
       let query = supabase
         .from('transparencia_publica')
         .select('*')
-        .order('data_abertura', { ascending: false })
+        .order('data_abertura', { ascending: true })
 
       if (filtroStatus) query = query.eq('status', filtroStatus)
 
@@ -27,6 +29,14 @@ export function Transparencia() {
     fetch()
   }, [filtroStatus])
 
+  const dadosFiltrados = busca
+    ? dados.filter(d =>
+        d.codigo_unico.toLowerCase().includes(busca.toLowerCase()) ||
+        d.iniciais_paciente.toLowerCase().includes(busca.toLowerCase()) ||
+        d.cpf_anonimizado.includes(busca)
+      )
+    : dados
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -36,25 +46,41 @@ export function Transparencia() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Transparência Pública</h1>
-            <p className="text-sm text-gray-500">Fila de demandas anonimizada</p>
+            <p className="text-sm text-gray-500">Fila de demandas do SUS - dados anonimizados</p>
           </div>
         </div>
-        <select
-          value={filtroStatus}
-          onChange={e => setFiltroStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-        >
-          <option value="">Todos os status</option>
-          <option value="aberto">Aberto</option>
-          <option value="em_analise">Em Análise</option>
-          <option value="em_andamento">Em Andamento</option>
-          <option value="concluido">Concluído</option>
-        </select>
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
         Os dados exibidos nesta página são anonimizados para proteção da privacidade dos pacientes,
-        conforme a Lei Geral de Proteção de Dados (LGPD).
+        conforme a Lei Geral de Proteção de Dados (LGPD). Nomes exibidos apenas com iniciais e CPF parcialmente oculto.
+      </div>
+
+      {/* Filtros */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="relative sm:col-span-2">
+            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por código, iniciais ou CPF..."
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            />
+          </div>
+          <select
+            value={filtroStatus}
+            onChange={e => setFiltroStatus(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          >
+            <option value="">Todos os status</option>
+            <option value="aberto">Aberto</option>
+            <option value="em_analise">Em Análise</option>
+            <option value="em_andamento">Em Andamento</option>
+            <option value="concluido">Concluído</option>
+          </select>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -62,7 +88,7 @@ export function Transparencia() {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
           </div>
-        ) : dados.length === 0 ? (
+        ) : dadosFiltrados.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 text-sm">Nenhuma demanda registrada.</p>
           </div>
@@ -71,25 +97,29 @@ export function Transparencia() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
+                  <th className="text-center px-3 py-3 font-medium text-gray-600 w-16">Fila</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Código</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Iniciais</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">CPF</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">Tipo</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden lg:table-cell">Prioridade</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">Vereador</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 hidden lg:table-cell">Data</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {dados.map(d => (
+                {dadosFiltrados.map((d, idx) => (
                   <tr key={d.codigo_unico} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-3 py-3 text-center">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary-50 text-primary-700 font-bold text-xs">
+                        {d.posicao_fila || idx + 1}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 font-mono text-xs text-primary-600 font-medium">{d.codigo_unico}</td>
-                    <td className="px-4 py-3 font-bold text-gray-900">{d.iniciais_paciente}</td>
+                    <td className="px-4 py-3 font-bold text-gray-900 text-lg tracking-wider">{d.iniciais_paciente}</td>
                     <td className="px-4 py-3 text-gray-600 font-mono text-xs hidden sm:table-cell">{d.cpf_anonimizado}</td>
                     <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{d.tipo_demanda}</td>
                     <td className="px-4 py-3"><StatusBadge status={d.status} /></td>
-                    <td className="px-4 py-3 hidden lg:table-cell"><CorBadge cor={d.classificacao_cor} /></td>
                     <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{d.nome_vereador}</td>
                     <td className="px-4 py-3 text-gray-600 hidden lg:table-cell text-xs">
                       {format(new Date(d.data_abertura), 'dd/MM/yyyy', { locale: ptBR })}
@@ -103,7 +133,7 @@ export function Transparencia() {
       </div>
 
       <div className="text-center text-xs text-gray-400">
-        Dados atualizados em tempo real. Total: {dados.length} demanda(s).
+        Total: {dadosFiltrados.length} demanda(s) na fila. Dados atualizados em tempo real.
       </div>
     </div>
   )

@@ -9,6 +9,7 @@ import {
   HiOutlineArrowRightOnRectangle,
   HiOutlineUsers,
   HiOutlineChartBarSquare,
+  HiOutlineAdjustmentsHorizontal,
 } from 'react-icons/hi2'
 
 interface Props {
@@ -78,6 +79,10 @@ export function Sidebar({ open, onClose }: Props) {
                 <NavLink to="/usuarios" className={linkClass} onClick={onClose}>
                   <HiOutlineUsers className="w-5 h-5" />
                   Usuários
+                </NavLink>
+                <NavLink to="/parametros" className={linkClass} onClick={onClose}>
+                  <HiOutlineAdjustmentsHorizontal className="w-5 h-5" />
+                  Parâmetros
                 </NavLink>
               </>
             )}

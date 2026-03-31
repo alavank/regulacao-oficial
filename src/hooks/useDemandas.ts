@@ -84,10 +84,8 @@ export function useDemandas(filtros: FiltrosDemanda = {}) {
     data_nascimento?: string
     telefone?: string
     tipo_demanda: string
+    descricao_demanda?: string
     descricao?: string
-    classificacao_cor?: string
-    info_setor?: string
-    observacoes?: string
   }) {
     if (!user) return { error: 'Não autenticado' }
 
@@ -98,7 +96,6 @@ export function useDemandas(filtros: FiltrosDemanda = {}) {
         vereador_id: user.id,
         status: 'aberto',
         data_abertura: new Date().toISOString(),
-        classificacao_cor: dados.classificacao_cor || 'verde',
       })
       .select()
       .single()

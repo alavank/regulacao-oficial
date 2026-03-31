@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { useAuditLog } from '../hooks/useAuditLog'
 import type { Perfil } from '../types'
 import { HiOutlineUsers, HiOutlineShieldCheck } from 'react-icons/hi2'
 
 export function Usuarios() {
   const { perfil: meuPerfil } = useAuth()
+  const { registrar } = useAuditLog()
   const [usuarios, setUsuarios] = useState<Perfil[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -44,6 +46,7 @@ export function Usuarios() {
     if (error) {
       setMsg(`Erro: ${error.message}`)
     } else {
+      await registrar('usuario.criar', 'usuarios', { nome: formNome, email: formEmail, role: formRole })
       setMsg('Usuário criado com sucesso!')
       setShowForm(false)
       setFormEmail('')
