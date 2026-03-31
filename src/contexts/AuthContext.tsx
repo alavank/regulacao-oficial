@@ -3,22 +3,31 @@ import type { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Perfil } from '../types'
 
+interface PerfilExtended extends Perfil {
+  deve_trocar_senha?: boolean
+  ativo?: boolean
+  telefone?: string
+}
+
 interface AuthContextType {
   user: User | null
-  perfil: Perfil | null
+  perfil: PerfilExtended | null
   session: Session | null
   loading: boolean
+  deveTrocarSenha: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
+  reloadPerfil: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [perfil, setPerfil] = useState<Perfil | null>(null)
+  const [perfil, setPerfil] = useState<PerfilExtended | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const deveTrocarSenha = perfil?.deve_trocar_senha === true
 
   async function fetchPerfil(userId: string) {
     const { data } = await supabase
@@ -27,6 +36,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('id', userId)
       .single()
     setPerfil(data)
+  }
+
+  async function reloadPerfil() {
+    if (user) await fetchPerfil(user.id)
   }
 
   useEffect(() => {
@@ -87,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, perfil, session, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, perfil, session, loading, deveTrocarSenha, signIn, signOut, reloadPerfil }}>
       {children}
     </AuthContext.Provider>
   )
