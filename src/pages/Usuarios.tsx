@@ -253,7 +253,7 @@ export function Usuarios() {
                         <span className="text-gray-900 font-medium">{u.nome}</span>
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{u.email?.replace('@regulacao.local', '') || u.email}</td>
+                    <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{u.login || u.email}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
                         u.role === 'admin' ? 'bg-red-100 text-red-800' :
@@ -325,7 +325,7 @@ export function Usuarios() {
               <div key={u.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-100">
                 <div>
                   <span className="text-sm text-gray-500 line-through">{u.nome}</span>
-                  <span className="text-xs text-gray-400 ml-2">{u.email?.replace('@regulacao.local', '')}</span>
+                  <span className="text-xs text-gray-400 ml-2">{u.login || u.email}</span>
                 </div>
                 <button onClick={() => reativarUsuario(u)} className="text-xs text-primary-600 hover:text-primary-800 font-medium">
                   Reativar
@@ -507,7 +507,7 @@ export function Usuarios() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Login</label>
-                    <input type="text" disabled value={selecionado?.email?.replace('@regulacao.local', '') || selecionado?.email || ''}
+                    <input type="text" disabled value={selecionado?.login || selecionado?.email || ''}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500"
                     />
                   </div>

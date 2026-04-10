@@ -106,7 +106,33 @@ CREATE POLICY parametros_update_admin ON parametros
     public.get_my_role() = 'admin'
   );
 
--- 11. RECRIAR VIEW TRANSPARÊNCIA SEM NOME DO VEREADOR
+-- 11. ADICIONAR CAMPO LOGIN NA TABELA PERFIS
+-- ============================================================
+ALTER TABLE perfis ADD COLUMN IF NOT EXISTS login TEXT UNIQUE;
+
+-- Preencher login a partir do email existente (remove @regulacao.local)
+UPDATE perfis
+  SET login = REPLACE(email, '@regulacao.local', '')
+  WHERE email LIKE '%@regulacao.local';
+
+-- Atualizar trigger de novo usuário para salvar login
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO perfis (id, nome, email, role, login, deve_trocar_senha)
+  VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'nome', NEW.email),
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'role', 'vereador'),
+    COALESCE(NEW.raw_user_meta_data->>'login', REPLACE(NEW.email, '@regulacao.local', '')),
+    TRUE
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- 12. RECRIAR VIEW TRANSPARÊNCIA SEM NOME DO VEREADOR
 -- Cidadão não pode ver qual vereador fez a demanda
 -- ============================================================
 CREATE OR REPLACE VIEW transparencia_publica AS

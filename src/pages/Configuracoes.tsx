@@ -233,7 +233,7 @@ export function Configuracoes() {
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900">{perfil?.nome}</p>
-            <p className="text-xs text-gray-500">{perfil?.email?.replace('@regulacao.local', '')}</p>
+            <p className="text-xs text-gray-500">{perfil?.login || perfil?.email}</p>
             <p className="text-xs text-gray-400 capitalize mt-0.5">{perfil?.role}</p>
           </div>
         </div>
@@ -262,7 +262,7 @@ export function Configuracoes() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Login</label>
-          <input type="text" disabled value={perfil?.email?.replace('@regulacao.local', '') || ''} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500" />
+          <input type="text" disabled value={perfil?.login || perfil?.email || ''} className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500" />
         </div>
 
         <div>

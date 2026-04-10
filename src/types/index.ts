@@ -2,6 +2,7 @@ export interface Perfil {
   id: string
   nome: string
   email: string
+  login: string | null
   role: 'vereador' | 'admin' | 'regulacao'
   foto: string | null
   bio: string | null
