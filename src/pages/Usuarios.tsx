@@ -31,7 +31,6 @@ export function Usuarios() {
   const [formNome, setFormNome] = useState('')
   const [formRole, setFormRole] = useState('vereador')
   const [formSenha, setFormSenha] = useState('')
-  const [formTelefone, setFormTelefone] = useState('')
   const [formContato, setFormContato] = useState('')
   const [formBio, setFormBio] = useState('')
   const [formLoading, setFormLoading] = useState(false)
@@ -55,7 +54,6 @@ export function Usuarios() {
     setFormNome('')
     setFormRole('vereador')
     setFormSenha('')
-    setFormContato('')
     setFormBio('')
     setMsg('')
   }
@@ -117,7 +115,6 @@ export function Usuarios() {
           password: formSenha,
           nome: formNome,
           role: formRole,
-          contato: formContato || undefined,
         }),
       })
 
@@ -441,14 +438,6 @@ export function Usuarios() {
                       type="text" required value={formNome} onChange={e => setFormNome(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
                       placeholder="Nome completo do usuário"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contato</label>
-                    <input
-                      type="text" value={formContato} onChange={e => setFormContato(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                      placeholder="Telefone ou e-mail (opcional)"
                     />
                   </div>
                   <div>

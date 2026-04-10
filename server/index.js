@@ -42,7 +42,7 @@ async function requireAdmin(req, res, next) {
 
 // Rota: criar usuário sem trocar a sessão do admin
 app.post('/api/users', requireAdmin, async (req, res) => {
-  const { login, password, nome, role, contato } = req.body
+  const { login, password, nome, role } = req.body
 
   if (!login || !password || !nome) {
     return res.status(400).json({ error: 'Login, senha e nome são obrigatórios' })
@@ -67,10 +67,6 @@ app.post('/api/users', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Este login já está em uso' })
     }
     return res.status(400).json({ error: error.message })
-  }
-
-  if (contato && data.user) {
-    await admin.from('perfis').update({ telefone: contato }).eq('id', data.user.id)
   }
 
   res.json({ user: data.user })

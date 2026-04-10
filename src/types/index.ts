@@ -78,7 +78,6 @@ export interface TransparenciaPublica {
   data_conclusao: string | null
   tmat: string | null
   tempo_resposta_dias: number | null
-  nome_vereador: string
   posicao_fila: number
 }
 

@@ -105,3 +105,27 @@ CREATE POLICY parametros_update_admin ON parametros
   FOR UPDATE USING (
     public.get_my_role() = 'admin'
   );
+
+-- 11. RECRIAR VIEW TRANSPARÊNCIA SEM NOME DO VEREADOR
+-- Cidadão não pode ver qual vereador fez a demanda
+-- ============================================================
+CREATE OR REPLACE VIEW transparencia_publica AS
+SELECT
+  d.codigo_unico,
+  anonimizar_nome(d.nome_paciente) AS iniciais_paciente,
+  anonimizar_cpf(d.cpf_paciente) AS cpf_anonimizado,
+  d.tipo_demanda,
+  d.descricao_demanda,
+  d.status,
+  d.classificacao_cor,
+  d.data_abertura,
+  d.data_conclusao,
+  d.tmat,
+  d.tempo_resposta_dias,
+  ROW_NUMBER() OVER (ORDER BY d.data_abertura ASC) AS posicao_fila
+FROM demandas d
+WHERE d.status NOT IN ('cancelado')
+ORDER BY d.data_abertura ASC;
+
+GRANT SELECT ON transparencia_publica TO anon;
+GRANT SELECT ON transparencia_publica TO authenticated;
