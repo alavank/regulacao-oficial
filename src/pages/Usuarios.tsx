@@ -27,11 +27,12 @@ export function Usuarios() {
   const [selecionado, setSelecionado] = useState<PerfilExtended | null>(null)
 
   // Form
-  const [formEmail, setFormEmail] = useState('')
+  const [formLogin, setFormLogin] = useState('')
   const [formNome, setFormNome] = useState('')
   const [formRole, setFormRole] = useState('vereador')
   const [formSenha, setFormSenha] = useState('')
   const [formTelefone, setFormTelefone] = useState('')
+  const [formContato, setFormContato] = useState('')
   const [formBio, setFormBio] = useState('')
   const [formLoading, setFormLoading] = useState(false)
   const [msg, setMsg] = useState('')
@@ -50,11 +51,11 @@ export function Usuarios() {
   function abrirCriar() {
     setModal('criar')
     setSelecionado(null)
-    setFormEmail('')
+    setFormLogin('')
     setFormNome('')
     setFormRole('vereador')
     setFormSenha('')
-    setFormTelefone('')
+    setFormContato('')
     setFormBio('')
     setMsg('')
   }
@@ -64,7 +65,7 @@ export function Usuarios() {
     setSelecionado(u)
     setFormNome(u.nome)
     setFormRole(u.role)
-    setFormTelefone(u.telefone || '')
+    setFormContato(u.telefone || '')
     setFormBio(u.bio || '')
     setMsg('')
   }
@@ -80,13 +81,28 @@ export function Usuarios() {
     setSelecionado(null)
   }
 
+  function validarLogin(login: string): boolean {
+    const partes = login.split('.')
+    return partes.length === 2 && partes[0].length >= 2 && partes[1].length >= 2 && /^[a-z]+\.[a-z]+$/.test(login)
+  }
+
   async function criarUsuario(e: React.FormEvent) {
     e.preventDefault()
     setFormLoading(true)
     setMsg('')
 
+    if (/[^a-z.]/.test(formLogin)) {
+      setMsg('Erro: O login não aceita acentos, cedilha ou caracteres especiais. Use apenas letras minúsculas e ponto.')
+      setFormLoading(false)
+      return
+    }
+    if (!validarLogin(formLogin)) {
+      setMsg('Erro: O login deve ter o formato nome.sobrenome (ex: joao.silva)')
+      setFormLoading(false)
+      return
+    }
+
     try {
-      // Usar API do backend para não trocar a sessão do admin
       const session = await supabase.auth.getSession()
       const token = session.data.session?.access_token
 
@@ -97,10 +113,11 @@ export function Usuarios() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          email: formEmail,
+          login: formLogin,
           password: formSenha,
           nome: formNome,
           role: formRole,
+          contato: formContato || undefined,
         }),
       })
 
@@ -109,7 +126,7 @@ export function Usuarios() {
       if (!res.ok) {
         setMsg(`Erro: ${data.error}`)
       } else {
-        await registrar('usuario.criar', 'usuarios', { nome: formNome, email: formEmail, role: formRole })
+        await registrar('usuario.criar', 'usuarios', { nome: formNome, login: formLogin, role: formRole })
         setMsg('Usuário criado com sucesso! Ele deverá trocar a senha no primeiro login.')
         setTimeout(() => { fetchUsuarios(); fecharModal() }, 1500)
       }
@@ -130,7 +147,7 @@ export function Usuarios() {
       .update({
         nome: formNome,
         role: formRole,
-        telefone: formTelefone || null,
+        telefone: formContato || null,
         bio: formBio || null,
       })
       .eq('id', selecionado.id)
@@ -217,7 +234,7 @@ export function Usuarios() {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Nome</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">E-mail</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">Login</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Perfil</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">2FA</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">Senha</th>
@@ -239,7 +256,7 @@ export function Usuarios() {
                         <span className="text-gray-900 font-medium">{u.nome}</span>
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{u.email}</td>
+                    <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{u.email?.replace('@regulacao.local', '') || u.email}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
                         u.role === 'admin' ? 'bg-red-100 text-red-800' :
@@ -311,7 +328,7 @@ export function Usuarios() {
               <div key={u.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-100">
                 <div>
                   <span className="text-sm text-gray-500 line-through">{u.nome}</span>
-                  <span className="text-xs text-gray-400 ml-2">{u.email}</span>
+                  <span className="text-xs text-gray-400 ml-2">{u.email?.replace('@regulacao.local', '')}</span>
                 </div>
                 <button onClick={() => reativarUsuario(u)} className="text-xs text-primary-600 hover:text-primary-800 font-medium">
                   Reativar
@@ -355,7 +372,7 @@ export function Usuarios() {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-gray-900">{selecionado.nome}</h3>
-                      <p className="text-sm text-gray-500">{selecionado.email}</p>
+                      <p className="text-sm text-gray-500">{selecionado.email?.replace('@regulacao.local', '') || selecionado.email}</p>
                     </div>
                   </div>
 
@@ -417,23 +434,47 @@ export function Usuarios() {
               {modal === 'criar' && (
                 <form onSubmit={criarUsuario} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nome Completo <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text" required value={formNome} onChange={e => setFormNome(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                      placeholder="Nome completo"
+                      placeholder="Nome completo do usuário"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contato</label>
                     <input
-                      type="email" required value={formEmail} onChange={e => setFormEmail(e.target.value)}
+                      type="text" value={formContato} onChange={e => setFormContato(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                      placeholder="email@exemplo.com"
+                      placeholder="Telefone ou e-mail (opcional)"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Senha Provisória</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Login <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text" required value={formLogin}
+                      onChange={e => setFormLogin(e.target.value.toLowerCase())}
+                      className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none ${
+                        formLogin && !validarLogin(formLogin) ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
+                      placeholder="nome.sobrenome"
+                    />
+                    {formLogin && /[^a-z.]/.test(formLogin) ? (
+                      <p className="text-xs text-red-500 mt-1">Apenas letras minúsculas sem acento e ponto. Não use ç, á, é, ã, etc.</p>
+                    ) : formLogin && !validarLogin(formLogin) ? (
+                      <p className="text-xs text-red-500 mt-1">Formato obrigatório: <strong>nome.sobrenome</strong> (ex: joao.silva)</p>
+                    ) : (
+                      <p className="text-xs text-gray-500 mt-1">Formato obrigatório: <strong>nome.sobrenome</strong> (ex: joao.silva)</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Senha Inicial <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="password" required minLength={6} value={formSenha} onChange={e => setFormSenha(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
@@ -442,7 +483,9 @@ export function Usuarios() {
                     <p className="text-xs text-gray-500 mt-1">O usuário será obrigado a trocar no primeiro acesso.</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Perfil de Acesso</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Perfil de Acesso <span className="text-red-500">*</span>
+                    </label>
                     <select
                       value={formRole} onChange={e => setFormRole(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
@@ -467,15 +510,15 @@ export function Usuarios() {
               {modal === 'editar' && (
                 <form onSubmit={editarUsuario} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
                     <input
                       type="text" required value={formNome} onChange={e => setFormNome(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-                    <input type="email" disabled value={selecionado?.email || ''}
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Login</label>
+                    <input type="text" disabled value={selecionado?.email?.replace('@regulacao.local', '') || selecionado?.email || ''}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500"
                     />
                   </div>
@@ -491,11 +534,11 @@ export function Usuarios() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Contato</label>
                     <input
-                      type="text" value={formTelefone} onChange={e => setFormTelefone(e.target.value)}
+                      type="text" value={formContato} onChange={e => setFormContato(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                      placeholder="(00) 00000-0000"
+                      placeholder="Telefone ou e-mail (opcional)"
                     />
                   </div>
                   <div>

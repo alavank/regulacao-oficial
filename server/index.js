@@ -42,23 +42,36 @@ async function requireAdmin(req, res, next) {
 
 // Rota: criar usuário sem trocar a sessão do admin
 app.post('/api/users', requireAdmin, async (req, res) => {
-  const { email, password, nome, role } = req.body
+  const { login, password, nome, role, contato } = req.body
 
-  if (!email || !password || !nome) {
-    return res.status(400).json({ error: 'Email, senha e nome são obrigatórios' })
+  if (!login || !password || !nome) {
+    return res.status(400).json({ error: 'Login, senha e nome são obrigatórios' })
+  }
+
+  // Validar formato nome.sobrenome
+  if (!/^[a-z]+\.[a-z]+$/.test(login)) {
+    return res.status(400).json({ error: 'Login deve ter o formato nome.sobrenome (ex: joao.silva)' })
   }
 
   const admin = getAdminClient()
 
-  // Criar usuário via Admin API (não afeta sessão do client)
   const { data, error } = await admin.auth.admin.createUser({
-    email,
+    email: `${login}@regulacao.local`,
     password,
     email_confirm: true,
-    user_metadata: { nome, role: role || 'vereador' },
+    user_metadata: { nome, role: role || 'vereador', login },
   })
 
-  if (error) return res.status(400).json({ error: error.message })
+  if (error) {
+    if (error.message.includes('already been registered')) {
+      return res.status(400).json({ error: 'Este login já está em uso' })
+    }
+    return res.status(400).json({ error: error.message })
+  }
+
+  if (contato && data.user) {
+    await admin.from('perfis').update({ telefone: contato }).eq('id', data.user.id)
+  }
 
   res.json({ user: data.user })
 })

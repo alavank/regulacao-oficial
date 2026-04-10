@@ -1,121 +1,103 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useDemandas } from '../hooks/useDemandas'
 import { useAuth } from '../contexts/AuthContext'
 import { StatsCards } from '../components/StatsCards'
-import { FilterBar } from '../components/FilterBar'
-import { StatusBadge, CorBadge } from '../components/StatusBadge'
-import { format, formatDistanceToNow } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { HiOutlinePlusCircle, HiOutlineEye } from 'react-icons/hi2'
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+} from 'recharts'
+
+const CORES_STATUS: Record<string, string> = {
+  aberto: '#3B82F6',
+  em_analise: '#F59E0B',
+  em_andamento: '#8B5CF6',
+  concluido: '#10B981',
+  cancelado: '#EF4444',
+  devolvido: '#6B7280',
+}
+
+const LABELS_STATUS: Record<string, string> = {
+  aberto: 'Aberto',
+  em_analise: 'Em Análise',
+  em_andamento: 'Em Andamento',
+  concluido: 'Concluído',
+  cancelado: 'Cancelado',
+  devolvido: 'Devolvido',
+}
 
 export function DashboardVereador() {
   const { perfil } = useAuth()
-  const [filtros, setFiltros] = useState({
-    status: '',
-    tipo_demanda: '',
-    classificacao_cor: '',
-    data_inicio: '',
-    data_fim: '',
-    busca: '',
-  })
+  const { demandas, stats } = useDemandas()
 
-  const { demandas, loading, stats } = useDemandas(filtros)
+  const dadosPorStatus = Object.entries(
+    demandas.reduce<Record<string, number>>((acc, d) => {
+      acc[d.status] = (acc[d.status] || 0) + 1
+      return acc
+    }, {})
+  ).map(([status, total]) => ({ status, label: LABELS_STATUS[status] || status, total }))
 
-  function calcularTempoResposta(dataAbertura: string, dataConclusao: string | null) {
-    const inicio = new Date(dataAbertura)
-    if (dataConclusao) {
-      const fim = new Date(dataConclusao)
-      const diffMs = fim.getTime() - inicio.getTime()
-      const dias = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-      const horas = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      return `${dias}d ${horas}h`
-    }
-    return formatDistanceToNow(inicio, { locale: ptBR, addSuffix: false })
-  }
+  const dadosPorTipo = Object.entries(
+    demandas.reduce<Record<string, number>>((acc, d) => {
+      acc[d.tipo_demanda] = (acc[d.tipo_demanda] || 0) + 1
+      return acc
+    }, {})
+  ).map(([tipo, total]) => ({ tipo, total })).sort((a, b) => b.total - a.total)
+
+  const pendentes = demandas.filter(d => ['aberto', 'em_analise'].includes(d.status)).length
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Olá, {perfil?.nome?.split(' ')[0]}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Acompanhe suas demandas de saúde
-          </p>
-        </div>
-        <Link
-          to="/nova-demanda"
-          className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
-        >
-          <HiOutlinePlusCircle className="w-5 h-5" />
-          Nova Demanda
-        </Link>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Olá, {perfil?.nome?.split(' ')[0]}
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">Resumo das suas demandas de saúde</p>
       </div>
 
       <StatsCards stats={stats} />
-      <FilterBar filtros={filtros} onChange={setFiltros} />
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-          </div>
-        ) : demandas.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-sm">Nenhuma demanda encontrada.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Código</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Paciente</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">Tipo</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden lg:table-cell">Prioridade</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden lg:table-cell">Tempo Resposta</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">Data</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-600">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {demandas.map(d => (
-                  <tr key={d.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-primary-600 font-medium">
-                      {d.codigo_unico}
-                    </td>
-                    <td className="px-4 py-3 text-gray-900">{d.nome_paciente}</td>
-                    <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{d.tipo_demanda}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={d.status} />
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell">
-                      <CorBadge cor={d.classificacao_cor} />
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 hidden lg:table-cell text-xs">
-                      {calcularTempoResposta(d.data_abertura, d.data_conclusao)}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 hidden md:table-cell text-xs">
-                      {format(new Date(d.data_abertura), 'dd/MM/yyyy', { locale: ptBR })}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        to={`/demanda/${d.id}`}
-                        className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-800 text-xs font-medium"
-                      >
-                        <HiOutlineEye className="w-4 h-4" />
-                        Ver
-                      </Link>
-                    </td>
-                  </tr>
+      {pendentes > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+          Você tem <strong>{pendentes}</strong> demanda{pendentes > 1 ? 's' : ''} aguardando análise ou ação.
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Suas Demandas por Status</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={dadosPorStatus}
+                cx="50%"
+                cy="50%"
+                innerRadius={55}
+                outerRadius={90}
+                paddingAngle={2}
+                dataKey="total"
+                nameKey="label"
+                label={({ label, total }) => `${label}: ${total}`}
+              >
+                {dadosPorStatus.map(entry => (
+                  <Cell key={entry.status} fill={CORES_STATUS[entry.status] || '#6B7280'} />
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Suas Demandas por Tipo</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={dadosPorTipo} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" allowDecimals={false} />
+              <YAxis type="category" dataKey="tipo" width={130} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="total" fill="#6366F1" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   )

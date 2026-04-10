@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { HiOutlineShieldCheck } from 'react-icons/hi2'
 
 export function Login() {
-  const [email, setEmail] = useState('')
+  const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [erro, setErro] = useState('')
   const [loading, setLoading] = useState(false)
@@ -16,6 +16,7 @@ export function Login() {
     setErro('')
     setLoading(true)
 
+    const email = `${login}@regulacao.local`
     const { error } = await signIn(email, password)
     if (error) {
       setErro('Credenciais inválidas. Verifique e tente novamente.')
@@ -46,17 +47,17 @@ export function Login() {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                E-mail
+              <label htmlFor="login" className="block text-sm font-medium text-gray-700 mb-1">
+                Login
               </label>
               <input
-                id="email"
-                type="email"
+                id="login"
+                type="text"
                 required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                value={login}
+                onChange={e => setLogin(e.target.value.toLowerCase())}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
-                placeholder="seu@email.com"
+                placeholder="nome.sobrenome"
               />
             </div>
 

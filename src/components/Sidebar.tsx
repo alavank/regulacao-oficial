@@ -8,8 +8,8 @@ import {
   HiOutlineCog6Tooth,
   HiOutlineArrowRightOnRectangle,
   HiOutlineUsers,
-  HiOutlineChartBarSquare,
   HiOutlineAdjustmentsHorizontal,
+  HiOutlineDocumentText,
 } from 'react-icons/hi2'
 
 interface Props {
@@ -52,6 +52,10 @@ export function Sidebar({ open, onClose }: Props) {
               <HiOutlineHome className="w-5 h-5" />
               Dashboard
             </NavLink>
+            <NavLink to="/demandas" className={linkClass} onClick={onClose}>
+              <HiOutlineDocumentText className="w-5 h-5" />
+              Demandas
+            </NavLink>
             <NavLink to="/nova-demanda" className={linkClass} onClick={onClose}>
               <HiOutlinePlusCircle className="w-5 h-5" />
               Nova Demanda
@@ -68,10 +72,6 @@ export function Sidebar({ open, onClose }: Props) {
                     Administração
                   </p>
                 </div>
-                <NavLink to="/admin" className={linkClass} onClick={onClose}>
-                  <HiOutlineChartBarSquare className="w-5 h-5" />
-                  Painel Geral
-                </NavLink>
                 <NavLink to="/auditoria" className={linkClass} onClick={onClose}>
                   <HiOutlineClipboardDocumentList className="w-5 h-5" />
                   Auditoria

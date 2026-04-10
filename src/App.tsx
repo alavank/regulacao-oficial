@@ -5,9 +5,10 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { Login } from './pages/Login'
 import { TrocarSenha } from './pages/TrocarSenha'
 import { DashboardVereador } from './pages/DashboardVereador'
+import { DashboardAdmin } from './pages/DashboardAdmin'
+import { Demandas } from './pages/Demandas'
 import { NovaDemanda } from './pages/NovaDemanda'
 import { DetalhesDemanda } from './pages/DetalhesDemanda'
-import { DashboardAdmin } from './pages/DashboardAdmin'
 import { Transparencia } from './pages/Transparencia'
 import { Auditoria } from './pages/Auditoria'
 import { Usuarios } from './pages/Usuarios'
@@ -53,19 +54,11 @@ export function App() {
         }
       >
         <Route path="/dashboard" element={<DashboardRouter />} />
+        <Route path="/demandas" element={<Demandas />} />
         <Route path="/nova-demanda" element={<NovaDemanda />} />
         <Route path="/demanda/:id" element={<DetalhesDemanda />} />
         <Route path="/transparencia" element={<Transparencia />} />
         <Route path="/configuracoes" element={<Configuracoes />} />
-
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'regulacao']}>
-              <DashboardAdmin />
-            </ProtectedRoute>
-          }
-        />
         <Route
           path="/auditoria"
           element={
