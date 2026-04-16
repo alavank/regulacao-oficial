@@ -191,7 +191,7 @@ export function Sidebar({ open, onClose }: Props) {
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
                     <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Suporte</p>
-                    <p className="text-sm text-gray-800 font-medium mt-0.5">Departamento de Tecnologia da Informação - Prefeitura Municipal de Nova Serrana</p>
+                    <p className="text-sm text-gray-800 font-medium mt-0.5">Departamento de Tecnologia da Informação</p>
                   </div>
                   <a
                     href="https://wa.me/553732269071"
@@ -206,7 +206,7 @@ export function Sidebar({ open, onClose }: Props) {
               </div>
 
               <p className="text-xs text-gray-400 text-center pt-3 border-t border-gray-100">
-                &copy; 2025 Prefeitura Municipal de Nova Serrana. Todos os direitos reservados.
+                &copy; 2025 Prefeitura de Nova Serrana. Todos os direitos reservados.
               </p>
             </div>
           </div>
