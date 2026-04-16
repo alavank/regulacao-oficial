@@ -47,27 +47,35 @@ export function Sidebar({ open, onClose }: Props) {
       >
         <div className="flex flex-col h-full">
           <div className="p-5 border-b border-gray-100">
-            <h1 className="text-lg font-bold text-primary-700">Regulação Saúde</h1>
+            <h1 className="text-lg font-bold text-primary-700">REGULAÇÃO 10D</h1>
             <p className="text-xs text-gray-500 mt-1">Sistema de Demandas</p>
           </div>
 
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            <NavLink to="/dashboard" className={linkClass} onClick={onClose}>
-              <HiOutlineHome className="w-5 h-5" />
-              Dashboard
-            </NavLink>
-            <NavLink to="/demandas" className={linkClass} onClick={onClose}>
-              <HiOutlineDocumentText className="w-5 h-5" />
-              Demandas
-            </NavLink>
-            <NavLink to="/nova-demanda" className={linkClass} onClick={onClose}>
-              <HiOutlinePlusCircle className="w-5 h-5" />
-              Nova Demanda
-            </NavLink>
-            <NavLink to="/transparencia" className={linkClass} onClick={onClose}>
-              <HiOutlineGlobeAlt className="w-5 h-5" />
-              Transparência
-            </NavLink>
+            {hasPermission('dashboard', 'ver') && (
+              <NavLink to="/dashboard" className={linkClass} onClick={onClose}>
+                <HiOutlineHome className="w-5 h-5" />
+                Dashboard
+              </NavLink>
+            )}
+            {hasPermission('demandas', 'ver') && (
+              <NavLink to="/demandas" className={linkClass} onClick={onClose}>
+                <HiOutlineDocumentText className="w-5 h-5" />
+                Demandas
+              </NavLink>
+            )}
+            {hasPermission('demandas', 'criar') && (
+              <NavLink to="/nova-demanda" className={linkClass} onClick={onClose}>
+                <HiOutlinePlusCircle className="w-5 h-5" />
+                Nova Demanda
+              </NavLink>
+            )}
+            {hasPermission('transparencia', 'ver') && (
+              <NavLink to="/transparencia" className={linkClass} onClick={onClose}>
+                <HiOutlineGlobeAlt className="w-5 h-5" />
+                Transparência
+              </NavLink>
+            )}
 
             {canSeeAdmin && (
               <>
@@ -143,7 +151,7 @@ export function Sidebar({ open, onClose }: Props) {
                   <HiOutlineInformationCircle className="w-5 h-5 text-primary-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Regulação Saúde</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">REGULAÇÃO 10D</h2>
                   <p className="text-xs text-gray-500">Sistema de Cadastro de Demandas &middot; v1.0</p>
                 </div>
               </div>
@@ -154,7 +162,7 @@ export function Sidebar({ open, onClose }: Props) {
 
             <div className="p-6 space-y-4 text-sm text-gray-600 leading-relaxed">
               <p>
-                O <strong className="text-gray-800">Regulação Saúde</strong> é um sistema desenvolvido para a gestão e
+                O <strong className="text-gray-800">REGULAÇÃO 10D</strong> é um sistema desenvolvido para a gestão e
                 acompanhamento de demandas de saúde encaminhadas por vereadores. A plataforma permite o cadastro, a
                 triagem e o monitoramento em tempo real de cada solicitação, garantindo transparência e agilidade no
                 atendimento ao cidadão.
@@ -183,7 +191,7 @@ export function Sidebar({ open, onClose }: Props) {
                 <div className="flex items-start gap-3">
                   <div className="flex-1">
                     <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Suporte</p>
-                    <p className="text-sm text-gray-800 font-medium mt-0.5">TI Prefeitura de Nova Serrana</p>
+                    <p className="text-sm text-gray-800 font-medium mt-0.5">Departamento de Tecnologia da Informação - Prefeitura Municipal de Nova Serrana</p>
                   </div>
                   <a
                     href="https://wa.me/553732269071"
@@ -198,7 +206,7 @@ export function Sidebar({ open, onClose }: Props) {
               </div>
 
               <p className="text-xs text-gray-400 text-center pt-3 border-t border-gray-100">
-                &copy; 2025 Prefeitura de Nova Serrana. Todos os direitos reservados.
+                &copy; 2025 Prefeitura Municipal de Nova Serrana. Todos os direitos reservados.
               </p>
             </div>
           </div>
