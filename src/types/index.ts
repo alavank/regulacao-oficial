@@ -91,6 +91,21 @@ export interface DashboardStats {
   tmat_medio: string | null
 }
 
+export type Modulo = 'demandas' | 'usuarios' | 'auditoria' | 'parametros' | 'transparencia' | 'dashboard' | 'configuracoes'
+export type Acao = 'ver' | 'criar' | 'editar' | 'excluir'
+
+export interface UserPermission {
+  id: string
+  user_id: string
+  modulo: Modulo
+  pode_ver: boolean
+  pode_criar: boolean
+  pode_editar: boolean
+  pode_excluir: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -98,6 +113,7 @@ export interface Database {
       demandas: { Row: Demanda; Insert: Partial<Demanda>; Update: Partial<Demanda> }
       parametros: { Row: Parametro; Insert: Omit<Parametro, 'id' | 'created_at'>; Update: Partial<Parametro> }
       auditoria_logs: { Row: AuditoriaLog; Insert: Omit<AuditoriaLog, 'id' | 'created_at'>; Update: never }
+      user_permissions: { Row: UserPermission; Insert: Omit<UserPermission, 'id' | 'created_at' | 'updated_at'>; Update: Partial<UserPermission> }
     }
     Views: {
       transparencia_publica: { Row: TransparenciaPublica }

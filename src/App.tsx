@@ -16,8 +16,9 @@ import { Configuracoes } from './pages/Configuracoes'
 import { Parametros } from './pages/Parametros'
 
 function DashboardRouter() {
-  const { perfil } = useAuth()
-  if (perfil?.role === 'admin' || perfil?.role === 'regulacao') {
+  const { hasPermission } = useAuth()
+  // Usuários com permissão de ver usuários (gestão) veem o dashboard admin
+  if (hasPermission('usuarios', 'ver')) {
     return <DashboardAdmin />
   }
   return <DashboardVereador />
@@ -62,7 +63,7 @@ export function App() {
         <Route
           path="/auditoria"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute requiredPermission={{ modulo: 'auditoria', acao: 'ver' }}>
               <Auditoria />
             </ProtectedRoute>
           }
@@ -70,7 +71,7 @@ export function App() {
         <Route
           path="/usuarios"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute requiredPermission={{ modulo: 'usuarios', acao: 'ver' }}>
               <Usuarios />
             </ProtectedRoute>
           }
@@ -78,7 +79,7 @@ export function App() {
         <Route
           path="/parametros"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute requiredPermission={{ modulo: 'parametros', acao: 'ver' }}>
               <Parametros />
             </ProtectedRoute>
           }

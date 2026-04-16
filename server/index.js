@@ -1,4 +1,5 @@
 import express from 'express'
+import rateLimit from 'express-rate-limit'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import { createClient } from '@supabase/supabase-js'
@@ -40,12 +41,57 @@ async function requireAdmin(req, res, next) {
   next()
 }
 
+// Rate limiting para rotas sensíveis
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Muitas requisições. Tente novamente em 1 minuto.' },
+})
+
+// Permissões default por role (usadas como template ao criar novo usuário)
+const ALL_MODULOS = ['demandas', 'usuarios', 'auditoria', 'parametros', 'transparencia', 'dashboard', 'configuracoes']
+
+function getDefaultPermissions(role, userId) {
+  const perm = (modulo, ver, criar, editar, excluir) => ({
+    user_id: userId, modulo, pode_ver: ver, pode_criar: criar, pode_editar: editar, pode_excluir: excluir,
+  })
+
+  if (role === 'admin') {
+    return ALL_MODULOS.map(m => perm(m, true, true, true, true))
+  }
+  if (role === 'regulacao') {
+    return [
+      perm('demandas', true, true, true, false),
+      perm('dashboard', true, false, false, false),
+      perm('transparencia', true, false, false, false),
+      perm('configuracoes', true, true, false, false),
+    ]
+  }
+  // vereador (default)
+  return [
+    perm('demandas', true, true, false, false),
+    perm('dashboard', true, false, false, false),
+    perm('transparencia', true, false, false, false),
+    perm('configuracoes', true, false, false, false),
+  ]
+}
+
 // Rota: criar usuário sem trocar a sessão do admin
-app.post('/api/users', requireAdmin, async (req, res) => {
+const ALLOWED_ROLES = ['vereador', 'admin', 'regulacao']
+
+app.post('/api/users', apiLimiter, requireAdmin, async (req, res) => {
   const { login, password, nome, role } = req.body
 
   if (!login || !password || !nome) {
     return res.status(400).json({ error: 'Login, senha e nome são obrigatórios' })
+  }
+
+  // Sanitizar nome: remover tags HTML e limitar tamanho
+  const sanitizedNome = String(nome).replace(/<[^>]*>/g, '').trim().slice(0, 120)
+  if (!sanitizedNome) {
+    return res.status(400).json({ error: 'Nome inválido' })
   }
 
   // Validar formato nome.sobrenome
@@ -53,13 +99,16 @@ app.post('/api/users', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Login deve ter o formato nome.sobrenome (ex: joao.silva)' })
   }
 
+  // Validar role contra whitelist
+  const safeRole = ALLOWED_ROLES.includes(role) ? role : 'vereador'
+
   const admin = getAdminClient()
 
   const { data, error } = await admin.auth.admin.createUser({
     email: `${login}@regulacao.local`,
     password,
     email_confirm: true,
-    user_metadata: { nome, role: role || 'vereador', login },
+    user_metadata: { nome: sanitizedNome, role: safeRole, login },
   })
 
   if (error) {
@@ -67,6 +116,13 @@ app.post('/api/users', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Este login já está em uso' })
     }
     return res.status(400).json({ error: error.message })
+  }
+
+  // Criar permissões default baseadas no role
+  const userId = data.user.id
+  const defaultPerms = getDefaultPermissions(safeRole, userId)
+  if (defaultPerms.length > 0) {
+    await admin.from('user_permissions').upsert(defaultPerms, { onConflict: 'user_id,modulo' })
   }
 
   res.json({ user: data.user })

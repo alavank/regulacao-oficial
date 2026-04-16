@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useAuditLog } from '../hooks/useAuditLog'
-import type { Perfil } from '../types'
+import type { Perfil, UserPermission, Modulo } from '../types'
 import {
   HiOutlineUsers,
   HiOutlineShieldCheck,
@@ -16,8 +16,56 @@ import {
 
 type PerfilExtended = Perfil & { deve_trocar_senha?: boolean; ativo?: boolean; telefone?: string }
 
+const MODULOS: { key: Modulo; label: string; acoes: ('ver' | 'criar' | 'editar' | 'excluir')[] }[] = [
+  { key: 'demandas', label: 'Demandas', acoes: ['ver', 'criar', 'editar', 'excluir'] },
+  { key: 'usuarios', label: 'Usuários', acoes: ['ver', 'criar', 'editar', 'excluir'] },
+  { key: 'auditoria', label: 'Auditoria', acoes: ['ver'] },
+  { key: 'parametros', label: 'Parâmetros', acoes: ['ver', 'editar'] },
+  { key: 'transparencia', label: 'Transparência', acoes: ['ver'] },
+  { key: 'dashboard', label: 'Dashboard', acoes: ['ver'] },
+  { key: 'configuracoes', label: 'Configurações', acoes: ['ver', 'editar'] },
+]
+
+const ACOES_LABELS: Record<string, string> = {
+  ver: 'Ver',
+  criar: 'Criar',
+  editar: 'Editar',
+  excluir: 'Excluir',
+}
+
+type PermissionsMap = Record<Modulo, { pode_ver: boolean; pode_criar: boolean; pode_editar: boolean; pode_excluir: boolean }>
+
+function defaultPermissions(): PermissionsMap {
+  const map = {} as PermissionsMap
+  for (const m of MODULOS) {
+    map[m.key] = { pode_ver: false, pode_criar: false, pode_editar: false, pode_excluir: false }
+  }
+  // Defaults mínimos para novo usuário
+  map.demandas.pode_ver = true
+  map.demandas.pode_criar = true
+  map.dashboard.pode_ver = true
+  map.transparencia.pode_ver = true
+  map.configuracoes.pode_ver = true
+  return map
+}
+
+function permissionsFromArray(perms: UserPermission[]): PermissionsMap {
+  const map = defaultPermissions()
+  for (const p of perms) {
+    if (map[p.modulo]) {
+      map[p.modulo] = {
+        pode_ver: p.pode_ver,
+        pode_criar: p.pode_criar,
+        pode_editar: p.pode_editar,
+        pode_excluir: p.pode_excluir,
+      }
+    }
+  }
+  return map
+}
+
 export function Usuarios() {
-  const { perfil: meuPerfil } = useAuth()
+  const { hasPermission } = useAuth()
   const { registrar } = useAuditLog()
   const [usuarios, setUsuarios] = useState<PerfilExtended[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,8 +81,12 @@ export function Usuarios() {
   const [formSenha, setFormSenha] = useState('')
   const [formContato, setFormContato] = useState('')
   const [formBio, setFormBio] = useState('')
+  const [formPermissions, setFormPermissions] = useState<PermissionsMap>(defaultPermissions())
   const [formLoading, setFormLoading] = useState(false)
   const [msg, setMsg] = useState('')
+
+  // Permissões do usuário selecionado (para detalhes)
+  const [selectedUserPerms, setSelectedUserPerms] = useState<UserPermission[]>([])
 
   useEffect(() => {
     fetchUsuarios()
@@ -47,6 +99,11 @@ export function Usuarios() {
     setLoading(false)
   }
 
+  async function fetchUserPermissions(userId: string): Promise<UserPermission[]> {
+    const { data } = await supabase.from('user_permissions').select('*').eq('user_id', userId)
+    return (data as UserPermission[]) || []
+  }
+
   function abrirCriar() {
     setModal('criar')
     setSelecionado(null)
@@ -55,10 +112,11 @@ export function Usuarios() {
     setFormRole('vereador')
     setFormSenha('')
     setFormBio('')
+    setFormPermissions(defaultPermissions())
     setMsg('')
   }
 
-  function abrirEditar(u: PerfilExtended) {
+  async function abrirEditar(u: PerfilExtended) {
     setModal('editar')
     setSelecionado(u)
     setFormNome(u.nome)
@@ -66,22 +124,49 @@ export function Usuarios() {
     setFormContato(u.telefone || '')
     setFormBio(u.bio || '')
     setMsg('')
+    // Carregar permissões atuais do usuário
+    const perms = await fetchUserPermissions(u.id)
+    setFormPermissions(permissionsFromArray(perms))
   }
 
-  function abrirDetalhes(u: PerfilExtended) {
+  async function abrirDetalhes(u: PerfilExtended) {
     setModal('detalhes')
     setSelecionado(u)
     setMsg('')
+    const perms = await fetchUserPermissions(u.id)
+    setSelectedUserPerms(perms)
   }
 
   function fecharModal() {
     setModal(null)
     setSelecionado(null)
+    setSelectedUserPerms([])
+  }
+
+  function togglePermission(modulo: Modulo, campo: 'pode_ver' | 'pode_criar' | 'pode_editar' | 'pode_excluir') {
+    setFormPermissions(prev => ({
+      ...prev,
+      [modulo]: { ...prev[modulo], [campo]: !prev[modulo][campo] },
+    }))
   }
 
   function validarLogin(login: string): boolean {
     const partes = login.split('.')
     return partes.length === 2 && partes[0].length >= 2 && partes[1].length >= 2 && /^[a-z]+\.[a-z]+$/.test(login)
+  }
+
+  async function savePermissions(userId: string) {
+    for (const m of MODULOS) {
+      const perm = formPermissions[m.key]
+      await supabase.from('user_permissions').upsert({
+        user_id: userId,
+        modulo: m.key,
+        pode_ver: perm.pode_ver,
+        pode_criar: perm.pode_criar,
+        pode_editar: perm.pode_editar,
+        pode_excluir: perm.pode_excluir,
+      }, { onConflict: 'user_id,modulo' })
+    }
   }
 
   async function criarUsuario(e: React.FormEvent) {
@@ -123,6 +208,10 @@ export function Usuarios() {
       if (!res.ok) {
         setMsg(`Erro: ${data.error}`)
       } else {
+        // Salvar permissões do novo usuário
+        if (data.user?.id) {
+          await savePermissions(data.user.id)
+        }
         await registrar('usuario.criar', 'usuarios', { nome: formNome, login: formLogin, role: formRole })
         setMsg('Usuário criado com sucesso! Ele deverá trocar a senha no primeiro login.')
         setTimeout(() => { fetchUsuarios(); fecharModal() }, 1500)
@@ -152,6 +241,8 @@ export function Usuarios() {
     if (error) {
       setMsg(`Erro: ${error.message}`)
     } else {
+      // Salvar permissões atualizadas
+      await savePermissions(selecionado.id)
       await registrar('usuario.editar' as any, 'usuarios', { nome: formNome, role: formRole, usuario_id: selecionado.id })
       setMsg('Usuário atualizado!')
       setTimeout(() => { fetchUsuarios(); fecharModal() }, 1000)
@@ -181,16 +272,108 @@ export function Usuarios() {
     fetchUsuarios()
   }
 
-  if (meuPerfil?.role !== 'admin') {
+  if (!hasPermission('usuarios', 'ver')) {
     return (
       <div className="text-center py-20">
-        <p className="text-gray-500">Acesso restrito a administradores.</p>
+        <p className="text-gray-500">Você não tem permissão para acessar este módulo.</p>
       </div>
     )
   }
 
+  const canCreate = hasPermission('usuarios', 'criar')
+  const canEdit = hasPermission('usuarios', 'editar')
+  const canDelete = hasPermission('usuarios', 'excluir')
+
   const ativos = usuarios.filter(u => u.ativo !== false)
   const inativos = usuarios.filter(u => u.ativo === false)
+
+  // Componente de grid de permissões (reutilizado em criar/editar)
+  const PermissionsGrid = () => (
+    <div className="space-y-3">
+      <label className="block text-sm font-medium text-gray-700">Permissões por Módulo</label>
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="text-left px-3 py-2 font-medium text-gray-600">Módulo</th>
+              {['ver', 'criar', 'editar', 'excluir'].map(a => (
+                <th key={a} className="text-center px-2 py-2 font-medium text-gray-600">{ACOES_LABELS[a]}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {MODULOS.map(m => (
+              <tr key={m.key} className="hover:bg-gray-50">
+                <td className="px-3 py-2 font-medium text-gray-800">{m.label}</td>
+                {(['ver', 'criar', 'editar', 'excluir'] as const).map(acao => {
+                  const campo = `pode_${acao}` as keyof PermissionsMap[Modulo]
+                  const available = m.acoes.includes(acao)
+                  return (
+                    <td key={acao} className="text-center px-2 py-2">
+                      {available ? (
+                        <input
+                          type="checkbox"
+                          checked={formPermissions[m.key][campo]}
+                          onChange={() => togglePermission(m.key, campo)}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 cursor-pointer"
+                        />
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+
+  // Componente de visualização de permissões (detalhes)
+  const PermissionsView = () => {
+    const map = permissionsFromArray(selectedUserPerms)
+    return (
+      <div className="space-y-2">
+        <p className="text-xs text-gray-500 uppercase tracking-wider">Permissões</p>
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left px-3 py-1.5 font-medium text-gray-600">Módulo</th>
+                {['Ver', 'Criar', 'Editar', 'Excluir'].map(a => (
+                  <th key={a} className="text-center px-2 py-1.5 font-medium text-gray-600">{a}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {MODULOS.map(m => (
+                <tr key={m.key}>
+                  <td className="px-3 py-1.5 font-medium text-gray-800">{m.label}</td>
+                  {(['pode_ver', 'pode_criar', 'pode_editar', 'pode_excluir'] as const).map(campo => {
+                    const acao = campo.replace('pode_', '') as 'ver' | 'criar' | 'editar' | 'excluir'
+                    const available = m.acoes.includes(acao)
+                    return (
+                      <td key={campo} className="text-center px-2 py-1.5">
+                        {!available ? (
+                          <span className="text-gray-300">—</span>
+                        ) : map[m.key][campo] ? (
+                          <span className="text-green-600 font-bold">✓</span>
+                        ) : (
+                          <span className="text-red-400">✗</span>
+                        )}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -204,13 +387,15 @@ export function Usuarios() {
             <p className="text-sm text-gray-500">Gerenciar usuários do sistema</p>
           </div>
         </div>
-        <button
-          onClick={abrirCriar}
-          className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
-        >
-          <HiOutlinePlusCircle className="w-5 h-5" />
-          Novo Usuário
-        </button>
+        {canCreate && (
+          <button
+            onClick={abrirCriar}
+            className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+          >
+            <HiOutlinePlusCircle className="w-5 h-5" />
+            Novo Usuário
+          </button>
+        )}
       </div>
 
       {msg && !modal && (
@@ -290,14 +475,16 @@ export function Usuarios() {
                         >
                           <HiOutlineEye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => abrirEditar(u)}
-                          className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                          title="Editar"
-                        >
-                          <HiOutlinePencilSquare className="w-4 h-4" />
-                        </button>
-                        {u.id !== meuPerfil?.id && (
+                        {canEdit && (
+                          <button
+                            onClick={() => abrirEditar(u)}
+                            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                            title="Editar"
+                          >
+                            <HiOutlinePencilSquare className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canDelete && (
                           <button
                             onClick={() => desativarUsuario(u)}
                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -327,9 +514,11 @@ export function Usuarios() {
                   <span className="text-sm text-gray-500 line-through">{u.nome}</span>
                   <span className="text-xs text-gray-400 ml-2">{u.login || u.email}</span>
                 </div>
-                <button onClick={() => reativarUsuario(u)} className="text-xs text-primary-600 hover:text-primary-800 font-medium">
-                  Reativar
-                </button>
+                {canEdit && (
+                  <button onClick={() => reativarUsuario(u)} className="text-xs text-primary-600 hover:text-primary-800 font-medium">
+                    Reativar
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -410,19 +599,28 @@ export function Usuarios() {
                     </div>
                   </div>
 
+                  {/* Permissões do usuário */}
+                  <div className="pt-4 border-t border-gray-100">
+                    <PermissionsView />
+                  </div>
+
                   <div className="flex gap-2 pt-4 border-t border-gray-100">
-                    <button
-                      onClick={() => abrirEditar(selecionado)}
-                      className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => { resetarSenha(selecionado) }}
-                      className="flex-1 px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      Forçar Troca de Senha
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => abrirEditar(selecionado)}
+                        className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Editar
+                      </button>
+                    )}
+                    {canEdit && (
+                      <button
+                        onClick={() => { resetarSenha(selecionado) }}
+                        className="flex-1 px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Forçar Troca de Senha
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -484,6 +682,10 @@ export function Usuarios() {
                       <option value="admin">Administrador</option>
                     </select>
                   </div>
+
+                  {/* Grid de Permissões */}
+                  <PermissionsGrid />
+
                   <div className="flex gap-3 justify-end pt-2">
                     <button type="button" onClick={fecharModal} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">
                       Cancelar
@@ -537,6 +739,10 @@ export function Usuarios() {
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none resize-none"
                     />
                   </div>
+
+                  {/* Grid de Permissões */}
+                  <PermissionsGrid />
+
                   <div className="flex gap-3 justify-end pt-2">
                     <button type="button" onClick={fecharModal} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">
                       Cancelar

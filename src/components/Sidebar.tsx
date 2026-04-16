@@ -25,8 +25,8 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
   }`
 
 export function Sidebar({ open, onClose }: Props) {
-  const { perfil, signOut } = useAuth()
-  const isAdmin = perfil?.role === 'admin' || perfil?.role === 'regulacao'
+  const { perfil, signOut, hasPermission } = useAuth()
+  const canSeeAdmin = hasPermission('auditoria', 'ver') || hasPermission('usuarios', 'ver') || hasPermission('parametros', 'ver')
 
   return (
     <>
@@ -65,25 +65,31 @@ export function Sidebar({ open, onClose }: Props) {
               Transparência
             </NavLink>
 
-            {isAdmin && (
+            {canSeeAdmin && (
               <>
                 <div className="pt-4 pb-2">
                   <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     Administração
                   </p>
                 </div>
-                <NavLink to="/auditoria" className={linkClass} onClick={onClose}>
-                  <HiOutlineClipboardDocumentList className="w-5 h-5" />
-                  Auditoria
-                </NavLink>
-                <NavLink to="/usuarios" className={linkClass} onClick={onClose}>
-                  <HiOutlineUsers className="w-5 h-5" />
-                  Usuários
-                </NavLink>
-                <NavLink to="/parametros" className={linkClass} onClick={onClose}>
-                  <HiOutlineAdjustmentsHorizontal className="w-5 h-5" />
-                  Parâmetros
-                </NavLink>
+                {hasPermission('auditoria', 'ver') && (
+                  <NavLink to="/auditoria" className={linkClass} onClick={onClose}>
+                    <HiOutlineClipboardDocumentList className="w-5 h-5" />
+                    Auditoria
+                  </NavLink>
+                )}
+                {hasPermission('usuarios', 'ver') && (
+                  <NavLink to="/usuarios" className={linkClass} onClick={onClose}>
+                    <HiOutlineUsers className="w-5 h-5" />
+                    Usuários
+                  </NavLink>
+                )}
+                {hasPermission('parametros', 'ver') && (
+                  <NavLink to="/parametros" className={linkClass} onClick={onClose}>
+                    <HiOutlineAdjustmentsHorizontal className="w-5 h-5" />
+                    Parâmetros
+                  </NavLink>
+                )}
               </>
             )}
           </nav>
