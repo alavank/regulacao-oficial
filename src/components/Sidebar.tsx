@@ -173,7 +173,7 @@ export function Sidebar({ open, onClose }: Props) {
               </p>
 
               <div className="pt-4 border-t border-gray-100 space-y-3">
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                   <div className="flex-1">
                     <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Desenvolvido por</p>
                     <p className="text-sm text-gray-800 font-medium mt-0.5">Tiago Miller</p>
@@ -188,7 +188,7 @@ export function Sidebar({ open, onClose }: Props) {
                     WhatsApp
                   </a>
                 </div>
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                   <div className="flex-1">
                     <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Suporte</p>
                     <p className="text-sm text-gray-800 font-medium mt-0.5">Departamento de Tecnologia da Informação</p>
@@ -206,7 +206,7 @@ export function Sidebar({ open, onClose }: Props) {
               </div>
 
               <p className="text-xs text-gray-400 text-center pt-3 border-t border-gray-100">
-                &copy; 2025 Prefeitura de Nova Serrana. Todos os direitos reservados.
+                &copy; 2026 Prefeitura Municipal de Nova Serrana. Todos os direitos reservados.
               </p>
             </div>
           </div>
